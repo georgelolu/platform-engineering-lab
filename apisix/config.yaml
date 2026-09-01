@@ -1,0 +1,34 @@
+apisix:
+  node_listen:
+    - 9080
+
+deployment:
+  role: traditional
+
+  role_traditional:
+    config_provider: etcd
+
+  etcd:
+    host:
+      - "http://etcd:2379"
+    prefix: "/apisix"
+    timeout: 30
+
+  admin:
+    admin_key:
+      - name: admin
+        role: admin
+        key: platform-admin-2026
+
+    allow_admin:
+      - 127.0.0.0/8
+      - 172.18.0.0/16
+      - 172.19.0.0/16
+
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+
+nginx_config:
+  error_log: "/dev/stderr"
+  error_log_level: "warn"
