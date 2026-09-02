@@ -32,7 +32,7 @@ job "platform-demo" {
       driver = "docker"
 
       config {
-        image       = "platform-demo:1.0"
+        image        = "${IMAGE}"
         network_mode = "host"
       }
 

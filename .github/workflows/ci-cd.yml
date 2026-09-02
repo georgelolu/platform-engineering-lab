@@ -98,3 +98,39 @@ jobs:
 
           echo "================================"
           echo "Runner test completed successfully!"
+
+
+  deploy:
+    name: Deploy to Nomad
+    runs-on: [self-hosted, linux, x64, nomad]
+    needs: runner-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy application to Nomad
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
+        run: |
+          echo "Deploying image:"
+          echo "$IMAGE"
+
+          nomad job run \
+            -var="IMAGE=$IMAGE" \
+            nomad/platform-demo.nomad
+
+      - name: Wait for Nomad deployment
+        run: |
+          sleep 10
+
+      - name: Verify Nomad deployment
+        run: |
+          nomad job status platform-demo
+
+      - name: Verify application through APISIX
+        run: |
+          curl -fsS http://127.0.0.1/platform-demo/health
+
+          echo ""
+          echo "Deployment verification successful!"
