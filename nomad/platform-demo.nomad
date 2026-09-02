@@ -1,3 +1,8 @@
+variable "IMAGE" {
+  type    = string
+  default = "platform-demo:1.0"
+}
+
 job "platform-demo" {
 
   datacenters = ["dc1"]
@@ -32,7 +37,7 @@ job "platform-demo" {
       driver = "docker"
 
       config {
-        image        = "${IMAGE}"
+        image        = var.IMAGE
         network_mode = "host"
       }
 
