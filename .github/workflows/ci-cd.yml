@@ -65,3 +65,36 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:latest
+
+
+  runner-test:
+    name: Test EC2 Self-Hosted Runner
+    runs-on: [self-hosted, linux, x64, nomad]
+    needs: docker-build-push
+
+    steps:
+      - name: Check runner
+        run: |
+          echo "Running on EC2 self-hosted runner"
+          echo "================================"
+          echo "Hostname:"
+          hostname
+
+          echo "================================"
+          echo "User:"
+          whoami
+
+          echo "================================"
+          echo "Docker version:"
+          docker --version
+
+          echo "================================"
+          echo "Nomad version:"
+          nomad version
+
+          echo "================================"
+          echo "Nomad node status:"
+          nomad node status
+
+          echo "================================"
+          echo "Runner test completed successfully!"
