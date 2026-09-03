@@ -3,6 +3,7 @@ services:
   etcd:
     image: quay.io/coreos/etcd:v3.5.17
     container_name: apisix-etcd
+    restart: unless-stopped
 
     command:
       - /usr/local/bin/etcd
@@ -25,6 +26,7 @@ services:
   apisix:
     image: apache/apisix:3.15.0-debian
     container_name: apisix
+    restart: unless-stopped
 
     depends_on:
       - etcd
