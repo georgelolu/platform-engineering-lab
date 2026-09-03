@@ -124,26 +124,85 @@ jobs:
           echo "Waiting for Nomad deployment to become healthy..."
 
           for i in {1..12}; do
-            STATUS=$(nomad job status platform-demo | awk '$1=="Status" {print $3}')
+            echo "=========================================="
+            echo "Health check attempt $i/12"
+            echo "=========================================="
 
-            echo "Attempt $i/12"
-            echo "Job status: $STATUS"
+            nomad job status -json platform-demo > /tmp/nomad-status.json
 
-            if [ "$STATUS" = "running" ]; then
-              if nomad job status platform-demo | \
-                awk '$1=="app" && $2=="1" && $3=="1" && $4=="1" && $5=="0" {found=1} END {exit !found}'
-              then
-                echo "Nomad deployment is healthy."
-                break
-              fi
+            RESULT=$(python3 - <<'PY'
+          import json
+          import sys
+
+          with open("/tmp/nomad-status.json") as f:
+              data = json.load(f)
+
+          if not isinstance(data, list) or not data:
+              print("invalid-nomad-response")
+              sys.exit(0)
+
+          job = data[0]
+
+          deployment = job.get("LatestDeployment")
+
+          if not deployment:
+              print("no-latest-deployment")
+              sys.exit(0)
+
+          deployment_status = deployment.get("Status")
+
+          print(f"deployment_status={deployment_status}")
+
+          if deployment_status != "successful":
+              print("deployment-not-successful")
+              sys.exit(0)
+
+          task_groups = deployment.get("TaskGroups", {})
+
+          for group_name, group in task_groups.items():
+
+              desired = group.get("DesiredTotal", 0)
+              placed = group.get("PlacedAllocs", 0)
+              healthy = group.get("HealthyAllocs", 0)
+              unhealthy = group.get("UnhealthyAllocs", 0)
+
+              print(
+                  f"group={group_name} "
+                  f"desired={desired} "
+                  f"placed={placed} "
+                  f"healthy={healthy} "
+                  f"unhealthy={unhealthy}"
+              )
+
+              if (
+                  desired > 0
+                  and placed == desired
+                  and healthy == desired
+                  and unhealthy == 0
+              ):
+                  print("HEALTHY")
+                  sys.exit(0)
+
+          print("not-healthy")
+          sys.exit(0)
+          PY
+            )
+
+            echo "$RESULT"
+
+            if echo "$RESULT" | grep -q "HEALTHY"; then
+              echo "Nomad deployment is healthy."
+              break
             fi
 
             if [ "$i" -eq 12 ]; then
               echo "Nomad deployment did not become healthy."
+              echo "Final Nomad status:"
               nomad job status platform-demo
               exit 1
             fi
 
+            echo "Deployment is not healthy yet. Waiting 5 seconds..."
             sleep 5
           done
 
