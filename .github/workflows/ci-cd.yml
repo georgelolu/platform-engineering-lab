@@ -119,17 +119,67 @@ jobs:
             -var="IMAGE=$IMAGE" \
             nomad/platform-demo.nomad
 
-      - name: Wait for Nomad deployment
-        run: |
-          sleep 10
-
       - name: Verify Nomad deployment
         run: |
-          nomad job status platform-demo
+          echo "Waiting for Nomad deployment to become healthy..."
+
+          for i in {1..12}; do
+            STATUS=$(nomad job status platform-demo | awk '$1=="Status" {print $3}')
+
+            echo "Attempt $i/12"
+            echo "Job status: $STATUS"
+
+            if [ "$STATUS" = "running" ]; then
+              if nomad job status platform-demo | \
+                awk '$1=="app" && $2=="1" && $3=="1" && $4=="1" && $5=="0" {found=1} END {exit !found}'
+              then
+                echo "Nomad deployment is healthy."
+                break
+              fi
+            fi
+
+            if [ "$i" -eq 12 ]; then
+              echo "Nomad deployment did not become healthy."
+              nomad job status platform-demo
+              exit 1
+            fi
+
+            sleep 5
+          done
 
       - name: Verify application through APISIX
         run: |
-          curl -fsS http://127.0.0.1/platform-demo/health
+          echo "Testing application through APISIX..."
 
-          echo ""
-          echo "Deployment verification successful!"
+          RESPONSE=$(curl -fsS http://127.0.0.1/platform-demo/health)
+
+          echo "Application response:"
+          echo "$RESPONSE"
+
+          if [ "$RESPONSE" != "healthy" ]; then
+            echo "Application health check failed."
+            exit 1
+          fi
+
+          echo "Application health check passed."
+
+      - name: Verify application metrics
+        run: |
+          echo "Testing Prometheus metrics endpoint..."
+
+          curl -fsS http://127.0.0.1:8080/metrics \
+            | grep -q "platform_demo_requests_total"
+
+          echo "Application metrics check passed."
+
+      - name: Deployment verification successful
+        run: |
+          echo "=========================================="
+          echo "DEPLOYMENT VERIFICATION SUCCESSFUL"
+          echo "=========================================="
+          echo "Application: platform-demo"
+          echo "Image: ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          echo "Nomad: healthy"
+          echo "APISIX: healthy"
+          echo "Metrics: available"
+          echo "=========================================="
