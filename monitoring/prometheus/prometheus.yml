@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "prometheus:9090"
+
+  - job_name: "platform-demo"
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "172.31.17.49:8080"

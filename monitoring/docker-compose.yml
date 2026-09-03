@@ -1,0 +1,31 @@
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: platform-prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: platform-grafana
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+    depends_on:
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:
