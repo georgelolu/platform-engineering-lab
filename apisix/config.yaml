@@ -18,7 +18,7 @@ deployment:
     admin_key:
       - name: admin
         role: admin
-        key: platform-admin-2026
+        key: ${{APISIX_ADMIN_KEY}}
 
     allow_admin:
       - 127.0.0.0/8

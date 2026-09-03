@@ -28,6 +28,9 @@ services:
     container_name: apisix
     restart: unless-stopped
 
+    env_file:
+      - .env
+
     depends_on:
       - etcd
 
